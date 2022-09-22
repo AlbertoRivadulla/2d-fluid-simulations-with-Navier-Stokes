@@ -28,6 +28,8 @@ include_directories(${INCLUDE})
 # Create a variable with a link to all cpp files to compile
 set(SOURCES
     main.cpp
+    ${PROJECT_SOURCE_DIR}/src/NavierStokesSolver.cpp
+    ${PROJECT_SOURCE_DIR}/src/boundaryConditions.cpp
    )
 
 add_executable(main ${SOURCES})
