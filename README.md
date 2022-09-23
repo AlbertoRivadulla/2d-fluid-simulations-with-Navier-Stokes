@@ -1,5 +1,6 @@
 # 2-dimensional fluid simulations with the Navier-Stokes equation
 
+Simulations of 2-dimensional fluids solving the Navier-Stokes equations.
 
 ### To do
 - `BoundaryConditions`
@@ -9,3 +10,4 @@
     - Initialize variables in the constructor 
     - Write the main loop
 - Output to a video
+    - Save to text files only the data that will appear in the video

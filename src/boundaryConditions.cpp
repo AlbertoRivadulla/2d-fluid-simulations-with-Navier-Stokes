@@ -36,10 +36,6 @@ void BoundaryConditions::addOutflowWall( Direction dir )
 // They are valid if all the walls have some sort of BC.
 bool BoundaryConditions::check()
 {
-    std::cout << mSolidWalls.size() << std::endl;
-    std::cout << mInflowWalls.size() << std::endl;
-    std::cout << mOutflowWalls.size() << std::endl;
-
     if ( mWallsWithBCs.size() < 4 )
         return false;
     return true;

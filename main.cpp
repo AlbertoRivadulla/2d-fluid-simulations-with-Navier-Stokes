@@ -13,9 +13,15 @@ int main()
     // Dimensions of the grid
     int Nx = 10;
     int Ny = 10;
+    double gridSize = 0.01;
+
+    // Reynolds number
+    double reynolds = 100.;
 
     // Time to run the simulation
-    double timeSim = 10;
+    double timeSim = 2;
+    // Parameter tau for the time step 
+    double tau = 0.5;
 
     // Setup the boundary conditions
     BoundaryConditions boundaryConditions;
@@ -23,6 +29,10 @@ int main()
     boundaryConditions.addOutflowWall( S );
     boundaryConditions.addSolidWall( E );
     boundaryConditions.addSolidWall( W );
+
+    // Add some solid objects in the domain 
+    
+    //
 
     //---------------------------------------------------------------
     // Run the simulation
@@ -33,9 +43,10 @@ int main()
     //  - Boundary conditions
     //  - File to output the results
     //  - Seconds to run the simulation
-    NavierStokesSolver solver( Nx, Ny, boundaryConditions, "out.txt", timeSim );
+    NavierStokesSolver solver( Nx, Ny, gridSize, reynolds, boundaryConditions, timeSim, tau );
 
     // Run the solver
+    solver.solve( "out.txt" );
 
     //
     //
