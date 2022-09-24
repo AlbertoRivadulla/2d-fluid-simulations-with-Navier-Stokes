@@ -5,6 +5,8 @@
 #include <string>
 #include <limits>
 #include <algorithm>
+#include <cmath>
+#include <chrono>
 
 #include "boundaryConditions.h"
 
@@ -19,6 +21,7 @@ class NavierStokesSolver
         //  - Seconds to run the simulation
         NavierStokesSolver( const int& Nx, const int& Ny, const double& gridSize,
                             const double& reynolds,
+                            const Vec2d& force,
                             BoundaryConditions boundaryConditions,
                             const double& timeSim,
                             const double& tau = 0.5 );
@@ -40,9 +43,13 @@ class NavierStokesSolver
 
         // Size of the grid
         int mNx, mNy;
-        double mH;
+        double mH, mHInv, mHSq, mHSqInv;
+        // Size of the grid with the extra rows and columns
+        int mNxp2, mNyp2;
         // Reynolds number
-        double mReynolds;
+        double mReynolds, mReynoldsInv;
+        // Gravity and external forces
+        double mGx, mGy;
         // Pointer to the boundary conditions
         BoundaryConditions* mBoundaryConditions;
         // Time to run the simulation
@@ -51,8 +58,12 @@ class NavierStokesSolver
         double mTau;
         // Frame time 
         double mFrameTime;
-        // Parameter omega for SOR (successive over-relaxation)
+        // Parameter omega for SOR (successive over-relaxation),
+        // threshold for the L2-norm of the residual squared and
+        // maximum number of iterations
         double mOmega;
+        double mThreshold;
+        double mIterMax;
 
         // --------------------------------------------------------------
         // Parameters used during the simulation
@@ -90,12 +101,7 @@ class NavierStokesSolver
         double* mRHS;
 
         // Pressure (actually, this is the pseudo-pressure, equal to p*deltat)
-        // Two copies, to hold the new and the old ones
-        double* mP1;
-        double* mP2;
-        // Pointers to the new and old matrices
         double* mP;
-        double* mPOld;
 
         // --------------------------------------------------------------
         // Private methods
@@ -118,8 +124,14 @@ class NavierStokesSolver
         // Update the velocity
         void updateVelocity();
 
+        // Initialize the file to save the results
+        void initOutputFile( const std::string& outfile );
+
         // Save the results to the file
         void saveStepToFile( const std::string& outFile );
+
+        // Close the file to save the results
+        void closeOutputFile( const std::string& outfile );
 };
 
 #endif
