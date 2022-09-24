@@ -54,9 +54,9 @@ NavierStokesSolver::NavierStokesSolver( const int& Nx, const int& Ny,
     // Omega - parameter for SOR (Successve Over-Relaxation)
     mOmega = 1.7;
     // Threshold for the L2-norm of the residual squared
-    mThreshold = 0.0001 * mNx * mNy;
+    mThreshold = 0.00001 * mNx * mNy;
     // Maximum number of iterations for the algorithm
-    mIterMax = 100;
+    mIterMax = 1000;
 
     // Parameters of the time of the simulation
     mDeltaT = 0.;
@@ -99,7 +99,7 @@ void NavierStokesSolver::setInitialValues( double u0, double v0, double p0 )
 // Main loop
 
 // Run the simulation
-void NavierStokesSolver::solve( std::string outFile )
+void NavierStokesSolver::solve( std::string outFileName )
 {
     // // Check if the boundary conditions are correct
     // if ( !mBoundaryConditions->check() )
@@ -108,25 +108,28 @@ void NavierStokesSolver::solve( std::string outFile )
     //     return;
     // }
 
-    // Initialize the output file 
-    initOutputFile( outFile );
+    // Open the output file and write the information in the header
+    initOutputFile( outFileName );
 
     // Initialize the time counter
-	auto t0 {std::chrono::high_resolution_clock::now()};
+    auto t0 {std::chrono::high_resolution_clock::now()};
 
     // Apply the boundary conditions for the first time
     mBoundaryConditions->applyBCs( mU, mV, mNx, mNy );
+
+    saveStepToFile();
 
     int count = 0;
     // Iterate over time
     while ( mTotalTime < mTimeSim )
     {
-        // if ( count++ > 4 )
-        //     break;
+        if ( count++ > 100 )
+            break;
+
         // Compute the delta of time of the frame
         computeDeltaTime();
 
-        // std::cout << "delta t: " << mDeltaT << std::endl;
+        std::cout << "delta t: " << mDeltaT << std::endl;
 
         // Compute the tentative velocity
         computeTentativeVelocity();
@@ -152,7 +155,7 @@ void NavierStokesSolver::solve( std::string outFile )
             mThisFrameTime -= mFrameTime;
 
             // Save the results to the file
-            saveStepToFile( outFile );
+            saveStepToFile();
 
             std::cout << "Frame " << mFrameCount << " of " << mTotalFrames << " --- " 
                       << mTotalTime << " seconds.\n";
@@ -183,7 +186,7 @@ void NavierStokesSolver::solve( std::string outFile )
     std::cout << "\nSimulation done in " << duration.count() << " seconds\n";
 
     // Close the output file 
-    closeOutputFile( outFile );
+    mOutputFile.close();
 }
 
 // ------------------------------------------------------
@@ -216,13 +219,13 @@ void NavierStokesSolver::initializeMatrices()
     mRHS = new double [ mNx * mNy ];
 
     // Pressure (actually, this is the pseudo-pressure, equal to p*deltat)
-    mP = new double [ (mNx + 2) * (mNy + 2) ];
+    // mP = new double [ (mNx + 2) * (mNy + 2) ];
     // Two copies, to hold the new and the old ones
-    // mP1 = new double [ (mNx + 2) * ( mNy + 2 ) ];
-    // mP2 = new double [ (mNx + 2) * ( mNy + 2 ) ];
-    // // Pointers to the new and old matrices
-    // mP = mP1;
-    // mPOld = mP2;
+    mP1 = new double [ (mNx + 2) * ( mNy + 2 ) ];
+    mP2 = new double [ (mNx + 2) * ( mNy + 2 ) ];
+    // Pointers to the new and old matrices
+    mP = mP1;
+    mPOld = mP2;
 }
 
 // Compute the delta of time
@@ -244,9 +247,12 @@ void NavierStokesSolver::computeDeltaTime()
     // If the maximum velocity is zero, add a small offset to it 
     uMax = std::max( std::fabs( uMax ), 0.000001 );
     vMax = std::max( std::fabs( vMax ), 0.000001 );
+    double velMax = std::max( uMax, vMax );
+
+    std::cout << uMax << ' ' << vMax << '\n';
 
     // Take the minimum of the three values 
-    mDeltaT = std::min( mReynolds / 4. * mH, std::min( 1. / uMax, 1. / vMax ) );
+    mDeltaT = std::min( mReynolds / 4. * mH, 1. / velMax );
 
     // Multiply the time step by tau, and by the step h that I left out in the previous line
     mDeltaT *= mTau * mH;
@@ -283,17 +289,20 @@ void NavierStokesSolver::computeTentativeVelocity()
                                                          mV[ ijp1 ] - 2.*mV[ ij ] + mV[ijm1] )
                             + mGy;
 
+
             // Compute Up and Vp 
-            if ( mTotalTime == 0. )
-            {
-                mUp[ ij ] = mU[ ij ] + mDeltaT * mRx[ ijForR ];
-                mVp[ ij ] = mV[ ij ] + mDeltaT * mRy[ ijForR ];
-            }
-            else
-            {
-                mUp[ ij ] = mU[ ij ] + mDeltaT * ( 1.5 * mRx[ ijForR ] - 0.5 * mRxOld[ ijForR ] );
-                mVp[ ij ] = mV[ ij ] + mDeltaT * ( 1.5 * mRy[ ijForR ] - 0.5 * mRyOld[ ijForR ] );
-            }
+            mUp[ ij ] = mU[ ij ] + mDeltaT * mRx[ ijForR ];
+            mVp[ ij ] = mV[ ij ] + mDeltaT * mRy[ ijForR ];
+            // if ( mTotalTime == 0. )
+            // {
+            //     mUp[ ij ] = mU[ ij ] + mDeltaT * mRx[ ijForR ];
+            //     mVp[ ij ] = mV[ ij ] + mDeltaT * mRy[ ijForR ];
+            // }
+            // else
+            // {
+            //     mUp[ ij ] = mU[ ij ] + mDeltaT * ( 1.5 * mRx[ ijForR ] - 0.5 * mRxOld[ ijForR ] );
+            //     mVp[ ij ] = mV[ ij ] + mDeltaT * ( 1.5 * mRy[ ijForR ] - 0.5 * mRyOld[ ijForR ] );
+            // }
 
             // std::cout << mRx[ ijForR ] << ' ' << mRy[ ijForR ] << " /// ";
             // std::cout << mUp[ ij ] << ' ' << mVp[ ij ] << " === ";
@@ -356,14 +365,15 @@ void NavierStokesSolver::solvePoisson()
     double pSqAcc = 0.;
     for ( int i = 1; i < mNx; ++i )
         for ( int j = 1; j < mNy; ++j )
-            // pSqAcc += mPOld[ i*mNyp2 + j ] * mPOld[ i*mNyp2 + j ];
             pSqAcc += mP[ i*mNyp2 + j ] * mP[ i*mNyp2 + j ];
     pSqAcc /= mNx * mNy;
     pSqAcc = std::sqrt( pSqAcc );
-
-    for ( int i = 1; i < mNx + 1; ++i )
-        for ( int j = 1; j < mNy + 1; ++j )
+    for ( int i = 0; i < mNx + 2; ++i )
+        for ( int j = 0; j < mNy + 2; ++j )
             mP[ i*mNyp2 + j ] = pSqAcc;
+
+    // Compute the threshold for the SOR algorith based on this value
+    double thisTreshold = pSqAcc * pSqAcc * mThreshold;
 
     // std::cout << std::endl << "Initial pressure: ";
     // for ( int i = 1; i < mNx + 1; ++i )
@@ -395,6 +405,10 @@ void NavierStokesSolver::solvePoisson()
                            + 0.25 * mOmega * ( mP[ ip1j ] + mP[ im1j ] +
                                                mP[ ijp1 ] + mP[ ijm1 ] - 
                                                mHSq * mRHS[ ijForRHS ] );
+                // mP[ ij ] = ( 1. - mOmega ) * mPOld[ ij ] 
+                //            + 0.25 * mOmega * ( mPOld[ ip1j ] + mPOld[ im1j ] +
+                //                                mPOld[ ijp1 ] + mPOld[ ijm1 ] - 
+                //                                mHSq * mRHS[ ijForRHS ] );
 
                 // mPOld[ ij ] = mP[ ij ];
 
@@ -442,12 +456,14 @@ void NavierStokesSolver::solvePoisson()
             }
         }
 
-        // std::cout << "Iteration " << iter << " of " << mIterMax << 
-        //              ", residual squared: " << residualSq << 
-        //              " difference " << residualSq - residualSqOld << std::endl;
+        std::cout << "Iteration " << iter << " of " << mIterMax << 
+                     ", residual squared: " << residualSq << 
+                     // ", squared: " << std::sqrt(residualSq) << 
+                     " difference " << residualSq - residualSqOld << std::endl;
 
         // If the change in the residual is small, break
-        if ( std::fabs( residualSq - residualSqOld ) < mThreshold )
+        // if ( std::fabs( residualSq - residualSqOld ) < thisTreshold )
+        if ( std::fabs( residualSq ) < thisTreshold )
             break;
 
         // Save the value of the residual
@@ -481,20 +497,39 @@ void NavierStokesSolver::updateVelocity()
 }
 
 // Initialize the file to save the results
-void NavierStokesSolver::initOutputFile( const std::string& outfile )
+void NavierStokesSolver::initOutputFile( const std::string& outFileName )
 {
+    // Open the file
+    mOutputFile.open( outFileName.c_str(), std::ios::binary | std::ios::out );
 
+    // Write the header
+    mOutputFile << "dimensions " << mNx << ' ' << mNy << '\n';
+    mOutputFile << "reynolds_nr " << mReynolds << '\n';
+    mOutputFile << "nr_of_frames " << mTimeSim / mFrameTime << '\n';
+    mOutputFile << "fps " << 1. / mFrameTime << '\n';
+
+    // Save a map of the grid 
+
+    //
+    //
+    //
 }
 
 // Save the results to the file
-void NavierStokesSolver::saveStepToFile( const std::string& outFile )
+void NavierStokesSolver::saveStepToFile()
 {
-    
+    std::cout << mU[ 15 ] << ' ' << mV[15] << std::endl;
+    // Blank line
+    mOutputFile << '\n';
+
+    // Save the velocities u and v, and the pressure, in contiguous form
+    for ( int i = 0; i < mNxp2 * mNyp2; ++i )
+        mOutputFile << mU[ i ] << ' ';
+    mOutputFile << '\n';
+    for ( int i = 0; i < mNxp2 * mNyp2; ++i )
+        mOutputFile << mV[ i ] << ' ';
+    mOutputFile << '\n';
+    for ( int i = 0; i < mNxp2 * mNyp2; ++i )
+        mOutputFile << mP[ i ] << ' ';
+    mOutputFile << '\n';
 }
-
-// Close the file to save the results
-void NavierStokesSolver::closeOutputFile( const std::string& outfile )
-{
-
-}
-

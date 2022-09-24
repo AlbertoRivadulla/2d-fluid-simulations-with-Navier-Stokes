@@ -98,17 +98,17 @@ void BoundaryConditions::applyBCs( double* u, double* v, const int& Nx, const in
     // Left wall 
     if ( mWWall.type != OUTFLOW )
     {
-        for ( int j = 0; j < Ny + 1; ++j )
+        for ( int j = 1; j < Ny + 1; ++j )
         {
             u[ j ] = mWWall.velocity.x;
-            v[ j ] = 2. + mWWall.velocity.y - v[ (Ny+2) + j ];
+            v[ j ] = 2. * mWWall.velocity.y - v[ (Ny+2) + j ];
         }
     }
 
     // Right wall
     if ( mEWall.type != OUTFLOW )
     {
-        for ( int j = 0; j < Ny + 1; ++j )
+        for ( int j = 1; j < Ny + 1; ++j )
         {
             u[ Nx*(Ny+2) + j ]     = mEWall.velocity.x;
             u[ (Nx+1)*(Ny+2) + j ] = 2. * mEWall.velocity.x - u[ (Nx-1)*(Ny+2) + j ];

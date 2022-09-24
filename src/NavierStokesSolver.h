@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cmath>
 #include <chrono>
+#include <fstream>
 
 #include "boundaryConditions.h"
 
@@ -101,7 +102,18 @@ class NavierStokesSolver
         double* mRHS;
 
         // Pressure (actually, this is the pseudo-pressure, equal to p*deltat)
+        // Two copies
+        double* mP1;
+        double* mP2;
+        // Pointers to the new and old matrices
         double* mP;
+        double* mPOld;
+
+        // --------------------------------------------------------------
+        // Variables used for the output
+
+        // File to write
+        std::ofstream mOutputFile;
 
         // --------------------------------------------------------------
         // Private methods
@@ -125,13 +137,10 @@ class NavierStokesSolver
         void updateVelocity();
 
         // Initialize the file to save the results
-        void initOutputFile( const std::string& outfile );
+        void initOutputFile( const std::string& outFileName );
 
         // Save the results to the file
-        void saveStepToFile( const std::string& outFile );
-
-        // Close the file to save the results
-        void closeOutputFile( const std::string& outfile );
+        void saveStepToFile();
 };
 
 #endif
