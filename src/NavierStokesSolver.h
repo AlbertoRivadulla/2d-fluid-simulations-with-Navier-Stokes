@@ -42,6 +42,9 @@ class NavierStokesSolver
         // --------------------------------------------------------------
         // Paramters of the simulation
 
+        // Boolean variable to know if the simulation is good
+        bool mGoodSimulation;
+
         // Size of the grid
         int mNx, mNy;
         double mH, mHInv, mHSq, mHSqInv;

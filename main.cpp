@@ -25,7 +25,7 @@ int main()
     double timeSim = 2;
     // double timeSim = 2./30.;
     // Parameter tau for the time step 
-    double tau = 0.2;
+    double tau = 0.5;
 
     // Setup the boundary conditions
     BoundaryConditions boundaryConditions;
@@ -34,14 +34,15 @@ int main()
     // boundaryConditions.addSolidWall( E );
     // boundaryConditions.addSolidWall( W );
 
-    boundaryConditions.addWallBC( N, INFLOW, { 0.001, 0. } );
+    // boundaryConditions.addWallBC( N, INFLOW, { 0.0001, 0. } );
+    // boundaryConditions.addWallBC( S, SOLID );
+    // boundaryConditions.addWallBC( E, SOLID );
+    // boundaryConditions.addWallBC( W, SOLID );
+
+    boundaryConditions.addWallBC( W, INFLOW, { 0.000001, 0. } );
+    boundaryConditions.addWallBC( N, SOLID );
     boundaryConditions.addWallBC( S, SOLID );
     boundaryConditions.addWallBC( E, SOLID );
-    boundaryConditions.addWallBC( W, SOLID );
-
-    // boundaryConditions.addWallBC( W, INFLOW, { 0.001, 0. } );
-    // boundaryConditions.addWallBC( N, SOLID );
-    // boundaryConditions.addWallBC( S, SOLID );
 
     // Add some solid objects in the domain 
     
