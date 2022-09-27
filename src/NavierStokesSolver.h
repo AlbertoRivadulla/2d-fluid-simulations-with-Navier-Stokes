@@ -11,6 +11,7 @@
 
 #include "boundaryConditions.h"
 
+
 class NavierStokesSolver
 {
     public:
@@ -27,6 +28,9 @@ class NavierStokesSolver
                             const double& timeSim,
                             const double& tau = 0.5 );
 
+        // Destructor
+        ~NavierStokesSolver();
+
         // Methods to set other paramters
         void setFrameRate( double fps );
         void setOmegaSOR( double omega );
@@ -41,9 +45,6 @@ class NavierStokesSolver
 
         // --------------------------------------------------------------
         // Paramters of the simulation
-
-        // Boolean variable to know if the simulation is good
-        bool mGoodSimulation;
 
         // Size of the grid
         int mNx, mNy;
@@ -78,6 +79,12 @@ class NavierStokesSolver
         int mTotalFrames;
         int mFrameCount;
 
+        // Boolean variable to know if the simulation is good
+        bool mGoodSimulation;
+
+        // Scale of the velocity, used to scale it in the video
+        double mVelocityScale;
+
         // --------------------------------------------------------------
         // Matrices
 
@@ -104,13 +111,8 @@ class NavierStokesSolver
         // Auxiliary rhs matrix
         double* mRHS;
 
-        // Pressure (actually, this is the pseudo-pressure, equal to p*deltat)
-        // Two copies
-        double* mP1;
-        double* mP2;
-        // Pointers to the new and old matrices
+        // Pressure
         double* mP;
-        double* mPOld;
 
         // --------------------------------------------------------------
         // Variables used for the output
@@ -144,6 +146,9 @@ class NavierStokesSolver
 
         // Save the results to the file
         void saveStepToFile();
+
+        // Write the velocity scale at the beginning of the file 
+        void writeVelocityScale();
 };
 
 #endif

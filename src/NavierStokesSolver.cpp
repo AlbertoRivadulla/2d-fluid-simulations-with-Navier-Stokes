@@ -23,13 +23,6 @@ NavierStokesSolver::NavierStokesSolver( const int& Nx, const int& Ny,
                                         const double& timeSim,
                                         const double& tau )
 {
-    // // Check if the boundary conditions are correct
-    // if ( !boundaryConditions.check() )
-    // {
-    //     std::cout << "Some boundary conditions for the walls are missing!\n";
-    //     return;
-    // }
-
     // Store the given parameters
     mNx = Nx;
     mNy = Ny;
@@ -61,6 +54,10 @@ NavierStokesSolver::NavierStokesSolver( const int& Nx, const int& Ny,
     // The simulation is good by default
     mGoodSimulation = true;
 
+    // Scaling for the velocity
+    // This will be equal to the maximum value of the velocity in the simulation 
+    mVelocityScale = 0.;
+
     // Parameters of the time of the simulation
     mDeltaT = 0.;
     mThisFrameTime = 0.;
@@ -71,6 +68,22 @@ NavierStokesSolver::NavierStokesSolver( const int& Nx, const int& Ny,
     // Initialize matrices
     initializeMatrices();
     setInitialValues( 0., 0., 0. );
+}
+
+// Destructor
+NavierStokesSolver::~NavierStokesSolver()
+{
+    // De-allocate the member arrays
+    delete[] mU;
+    delete[] mV;
+    delete[] mRx1;
+    delete[] mRx2;
+    delete[] mRy1;
+    delete[] mRy2;
+    delete[] mUp;
+    delete[] mVp;
+    delete[] mRHS;
+    delete[] mP;
 }
 
 // Methods to set other paramters
@@ -104,13 +117,6 @@ void NavierStokesSolver::setInitialValues( double u0, double v0, double p0 )
 // Run the simulation
 void NavierStokesSolver::solve( std::string outFileName )
 {
-    // // Check if the boundary conditions are correct
-    // if ( !mBoundaryConditions->check() )
-    // {
-    //     std::cout << "Can't run the simulation with some boundary conditions missing!\n";
-    //     return;
-    // }
-
     // Open the output file and write the information in the header
     initOutputFile( outFileName );
 
@@ -129,12 +135,9 @@ void NavierStokesSolver::solve( std::string outFileName )
         // If the simulation is not good, stop
         if ( !mGoodSimulation )
             break;
-        // if ( count++ > 1000 )
-        //     break;
 
         // Compute the delta of time of the frame
         computeDeltaTime();
-
         // std::cout << "delta t: " << mDeltaT << std::endl;
 
         // Compute the tentative velocity
@@ -166,24 +169,6 @@ void NavierStokesSolver::solve( std::string outFileName )
             std::cout << "Frame " << mFrameCount << " of " << mTotalFrames << " --- " 
                       << mTotalTime << " seconds.\n";
         }
-
-        // // Swap old and new matrices for R and p
-        // std::swap( mRx, mRxOld );
-        // std::swap( mRy, mRyOld );
-        // std::swap( mP, mPOld );
-        // double* tempRx;
-        // double* tempRy;
-        // tempRx = mRx;
-        // tempRy = mRy;
-        // mRx = mRxOld;
-        // mRy = mRyOld;
-        // mRxOld = tempRx;
-        // mRyOld = tempRy;
-        //
-        // double* tempP;
-        // tempP = mP;
-        // mP = mPOld;
-        // mPOld = tempP;
     }
 
     // Compute the total time of the simulation
@@ -191,7 +176,8 @@ void NavierStokesSolver::solve( std::string outFileName )
 	std::chrono::duration<double> duration {t1 - t0};
     std::cout << "\nSimulation done in " << duration.count() << " seconds\n";
 
-    // Close the output file 
+    // Write the velocity scale and close the output file 
+    writeVelocityScale();
     mOutputFile.close();
 }
 
@@ -224,14 +210,8 @@ void NavierStokesSolver::initializeMatrices()
     // Auxiliary rhs matrix
     mRHS = new double [ mNx * mNy ];
 
-    // Pressure (actually, this is the pseudo-pressure, equal to p*deltat)
-    // mP = new double [ (mNx + 2) * (mNy + 2) ];
-    // Two copies, to hold the new and the old ones
-    mP1 = new double [ (mNx + 2) * ( mNy + 2 ) ];
-    mP2 = new double [ (mNx + 2) * ( mNy + 2 ) ];
-    // Pointers to the new and old matrices
-    mP = mP1;
-    mPOld = mP2;
+    // Pressure
+    mP = new double [ (mNx + 2) * (mNy + 2) ];
 
     // Initialize all matrices with zeroes
     for ( int i = 0; i < mNxp2; ++i )
@@ -242,8 +222,7 @@ void NavierStokesSolver::initializeMatrices()
             mV[ i*mNyp2 + j ] = 0.;
             mUp[ i*mNyp2 + j ] = 0.;
             mVp[ i*mNyp2 + j ] = 0.;
-            mP1[ i*mNyp2 + j ] = 0.;
-            mP2[ i*mNyp2 + j ] = 0.;
+            mP[ i*mNyp2 + j ] = 0.;
         }
     }
     for ( int i = 0; i < mNx; ++i )
@@ -318,59 +297,33 @@ void NavierStokesSolver::computeTentativeVelocity()
                                                          mV[ ijp1 ] - 2.*mV[ ij ] + mV[ijm1] )
                             + mGy;
 
-            // std::cout << mV[ ij ] << ' ' << mRy[ ijForR ] << " --- ";
-
             // Compute Up and Vp 
-            // mUp[ ij ] = mU[ ij ] + mDeltaT * mRx[ ijForR ];
-            // mVp[ ij ] = mV[ ij ] + mDeltaT * mRy[ ijForR ];
-            mUp[ ij ] = mU[ ij ] + mDeltaT * ( 1.5 * mRx[ ijForR ] - 0.5 * mRxOld[ ijForR ] );
-            mVp[ ij ] = mV[ ij ] + mDeltaT * ( 1.5 * mRy[ ijForR ] - 0.5 * mRyOld[ ijForR ] );
-            // if ( mTotalTime == 0. )
-            // {
-            //     mUp[ ij ] = mU[ ij ] + mDeltaT * mRx[ ijForR ];
-            //     mVp[ ij ] = mV[ ij ] + mDeltaT * mRy[ ijForR ];
-            // }
-            // else
-            // {
-            //     mUp[ ij ] = mU[ ij ] + mDeltaT * ( 1.5 * mRx[ ijForR ] - 0.5 * mRxOld[ ijForR ] );
-            //     mVp[ ij ] = mV[ ij ] + mDeltaT * ( 1.5 * mRy[ ijForR ] - 0.5 * mRyOld[ ijForR ] );
-            // }
-
-            // std::cout << mRx[ ijForR ] << ' ' << mRy[ ijForR ] << " /// ";
-            // std::cout << mUp[ ij ] << ' ' << mVp[ ij ] << " === ";
+            // mUp[ ij ] = mU[ ij ] + mDeltaT * ( 1.5 * mRx[ ijForR ] - 0.5 * mRxOld[ ijForR ] );
+            // mVp[ ij ] = mV[ ij ] + mDeltaT * ( 1.5 * mRy[ ijForR ] - 0.5 * mRyOld[ ijForR ] );
+            if ( mTotalTime == 0. )
+            {
+                mUp[ ij ] = mU[ ij ] + mDeltaT * mRx[ ijForR ];
+                mVp[ ij ] = mV[ ij ] + mDeltaT * mRy[ ijForR ];
+            }
+            else
+            {
+                mUp[ ij ] = mU[ ij ] + mDeltaT * ( 1.5 * mRx[ ijForR ] - 0.5 * mRxOld[ ijForR ] );
+                mVp[ ij ] = mV[ ij ] + mDeltaT * ( 1.5 * mRy[ ijForR ] - 0.5 * mRyOld[ ijForR ] );
+            }
         }
     }
-
-    // // Compute Up and Vp
-    // for ( int i = 1; i < mNx + 1; ++i )
-    // {
-    //     for ( int j = 1; j < mNy + 1; ++j )
-    //     {
-    //         unsigned int ij = i * mNyp2 + j;
-    //         unsigned int ijForR = i*mNy + j;
-    //         mUp[ ij ] = mU[ ij ] + mDeltaT * ( 1.5 * mRx[ ijForR ] - 0.5 * mRxOld[ ijForR ] );
-    //         mVp[ ij ] = mV[ ij ] + mDeltaT * ( 1.5 * mRy[ ijForR ] - 0.5 * mRyOld[ ijForR ] );
-    //     }
-    // }
 
     // Set the values of the components up[0, j] and vp[i, 0] so that the derivatives
     // next to these boundaries are computed correctly when evaluating the RHS of
     // the Poisson equation 
-    // for ( int j = 1; j < mNy + 1; ++j )
     for ( int j = 0; j < mNyp2; ++j )
     {
-        // mUp[ j ] = 2. * mUp[ mNyp2 + j ] - mUp[ 2*mNyp2 + j ];
-        // mUp[ (mNx+1)*mNyp2 + j ] = 2. * mUp[ (mNx)*mNyp2 + j ] - mUp[ (mNx-1)*mNyp2 + j ];
-
         mUp[ j ] = mU[ j ];
         mUp[ (mNx+1)*mNyp2 + j ] = mU[ (mNx+1)*mNyp2 + j ];
     }
     // for ( int i = 1; i < mNx + 1; ++i )
     for ( int i = 0; i < mNxp2; ++i )
     {
-        // mVp[ i*mNyp2 ] = 2. * mVp[ i*mNyp2 + 1 ] - mVp[ i*mNyp2 + 2 ];
-        // mVp[ i*mNyp2 + mNy+1 ] = 2. * mVp[ i*mNyp2 + mNy ] - mVp[ i*mNyp2 + mNy-1 ];
-
         mVp[ i*mNyp2 ] = mV[ i*mNyp2 ];
         mVp[ i*mNyp2 + mNy+1 ] = mV[ i*mNyp2 + mNy+1 ];
     }
@@ -391,12 +344,7 @@ void NavierStokesSolver::computeRHSPoisson()
             unsigned int im1j     = ( i - 1 ) * mNyp2 + j;
             unsigned int ijm1     = i * mNyp2 + j - 1;
             unsigned int ijForRHS = (i-1) * mNy + (j-1);
-            // std::cout << mUp[ ij ] << ' ' << mUp[ im1j ] << ' ' << mVp[ ij ] << ' ' << mVp [ ij ] << " ----- ";
-            // mRHS[ ijForRHS ] = mHInv * ( mUp[ ij ] - mUp[ im1j ] + mVp[ ij ] - mVp[ ijm1 ] );
             mRHS[ ijForRHS ] = mHInv * ( mUp[ ij ] - mUp[ im1j ] + mVp[ ij ] - mVp[ ijm1 ] ) / mDeltaT;
-
-            // std::cout<< std::endl << "RHS: ";
-            // std::cout << mRHS[ ijForRHS ] << " --- ";
         }
     }
 }
@@ -406,7 +354,6 @@ void NavierStokesSolver::solvePoisson()
 {
     // Initialize the L2-norm of the residual
     double residualSq;
-    double residualSqOld = 0.;
 
     // Set the old pressure to be the average of the squared pressure
     double pSqAcc = 0.;
@@ -421,25 +368,13 @@ void NavierStokesSolver::solvePoisson()
             mP[ i*mNyp2 + j ] = pSqAcc;
 
     // Compute the threshold for the SOR algorith based on this value
-    // double thisTreshold = pSqAcc * pSqAcc * mThreshold / mDeltaT;
     double thisTreshold = mThreshold * pSqAcc * mHSqInv / mDeltaT;
 
     // std::cout << "Average pressure: " << pSqAcc << std::endl;
 
-    // std::cout << std::endl << "Initial pressure: ";
-    // for ( int i = 1; i < mNx + 1; ++i )
-    //     std::cout << mP[ i*mNyp2 + 1 ] << ' ';
-    // std::cout << std::endl;
-
     int iter = 0;
     for ( ; iter < mIterMax; ++iter )
     {
-        // // Swap the new and old pressures
-        // std::swap( mP, mPOld );
-
-        // // Initialize the residual to zero
-        // residualSq = 0.;
-
         // Red/black SOR
         for ( int redBlack = 0; redBlack <=1; ++redBlack )
         {
@@ -461,41 +396,19 @@ void NavierStokesSolver::solvePoisson()
                                + 0.25 * mOmega * ( mP[ ip1j ] + mP[ im1j ] +
                                                    mP[ ijp1 ] + mP[ ijm1 ] - 
                                                    mHSq * mRHS[ ijForRHS ] );
-                    // mP[ ij ] = ( 1. - mOmega ) * mPOld[ ij ] 
-                    //            + 0.25 * mOmega * ( mPOld[ ip1j ] + mPOld[ im1j ] +
-                    //                                mPOld[ ijp1 ] + mPOld[ ijm1 ] - 
-                    //                                mHSq * mRHS[ ijForRHS ] );
-
-                    // mPOld[ ij ] = mP[ ij ];
-
-                    // std::cout << mP[ ij ] << ' ' << mP[ ip1j ] << " /// ";
-                    // std::cout << mPOld[ ij ] << ' ' << mPOld[ ip1j ] << " /// ";
 
                     // Set the boundary values equal to the adjacent ones
                     if ( i == 1 )
-                        // mP[ im1j ] = mP[ ij ];
                         mP[ im1j ] = 2. * mP[ ij ] - mP[ip1j];
                     else if ( i == mNx )
-                        // mP[ ip1j ] = mP[ ij ];
                         mP[ ip1j ] = 2. * mP[ ij ] - mP[im1j];
                     if ( j == 1 )
-                        // mP[ ijm1 ] = mP[ ij ];
                         mP[ ijm1 ] = 2. * mP[ ij ] - mP[ijp1];
                     else if ( j == mNy )
-                        // mP[ ijp1 ] = mP[ ij ];
                         mP[ ijp1 ] = 2. * mP[ ij ] - mP[ijm1];
-
-                    // // // Add to the residual
-                    // double thisRes = mHSqInv * ( mP[ ip1j ] - 2.*mP[ ij ] + mP[ im1j ] + 
-                    //                           mP[ ijp1 ] - 2.*mP[ ij ] + mP[ ijm1 ] )
-                    //                  - mRHS[ ijForRHS ];
-                    // residualSq += thisRes * thisRes;
                 }
             }
         }
-
-        // std::cout << mP[ 15 ] << ' ' << mP[ 16 ] << " /// ";
-        // std::cout << mPOld[ 15 ] << ' ' << mPOld[ 16 ] << " /// ";
 
         // Compute the residual
         residualSq = 0.;
@@ -523,13 +436,8 @@ void NavierStokesSolver::solvePoisson()
         //              " difference " << residualSq - residualSqOld << std::endl;
 
         // If the change in the residual is small, break
-        // if ( std::fabs( residualSq - residualSqOld ) < thisTreshold )
         if ( std::fabs( residualSq ) < thisTreshold )
             break;
-
-        // Save the value of the residual
-        residualSqOld = residualSq;
-
     }
 
     if ( iter == mIterMax )
@@ -538,13 +446,6 @@ void NavierStokesSolver::solvePoisson()
         // In this case, the simulation is not good
         mGoodSimulation = false;
     }
-
-    // std::cout << std::endl;
-    // std::cout << "Final pressure: ";
-    // for ( int i = 1; i < mNx + 1; ++i )
-    //     std::cout << mP[ i*mNyp2 + 1 ] << ' ';
-    // std::cout << std::endl;
-    // std::cout << std::endl << "----------" << std::endl << std::endl;
 }
 
 // Update the velocity
@@ -556,35 +457,23 @@ void NavierStokesSolver::updateVelocity()
         for ( int j = 1; j < mNy + 1; ++j )
         {
             unsigned int ij   = i * mNyp2 + j;
-            // unsigned int im1j = ( i - 1 ) * mNyp2 + j;
-            // unsigned int ijm1 = i * mNyp2 + j - 1;
             unsigned int ip1j = ( i + 1 ) * mNyp2 + j;
             unsigned int ijp1 = i * mNyp2 + j + 1;
 
-            // mU[ ij ] = mUp[ ij ] - mHInv * mDeltaT * ( mP[ ij ] - mP[ im1j ] );
-            // mV[ ij ] = mVp[ ij ] - mHInv * mDeltaT * ( mP[ ij ] - mP[ ijm1 ] );
             mU[ ij ] = mUp[ ij ] - mHInv * mDeltaT * ( mP[ ip1j ] - mP[ ij ] );
             mV[ ij ] = mVp[ ij ] - mHInv * mDeltaT * ( mP[ ijp1 ] - mP[ ij ] );
-            // mU[ ij ] = mUp[ ij ] - mHInv * ( mP[ ij ] - mP[ im1j ] );
-            // mV[ ij ] = mVp[ ij ] - mHInv * ( mP[ ij ] - mP[ ijm1 ] );
-
-            // std::cout << mP[ ij ] - mP[ ijm1 ] << ' ';
-            // // std::cout << mPOld[ ij ] - mPOld[ ijm1 ] << ' ';
-            // std::cout << mVp[ ij ] << " --- ";
         }
     }
-
-    // std::cout << "\n\n =============\n\n\n";
 }
 
 // Initialize the file to save the results
 void NavierStokesSolver::initOutputFile( const std::string& outFileName )
 {
     // Open the file
-    // mOutputFile.open( outFileName.c_str(), std::ios::binary | std::ios::out );
-    mOutputFile.open( outFileName.c_str(), std::ios::out );
+    mOutputFile.open( outFileName.c_str(), std::ios::binary | std::ios::out );
 
     // Write the header
+    mOutputFile << "velocity_scale " << "          " << '\n';
     mOutputFile << "dimensions " << mNx << ' ' << mNy << '\n';
     mOutputFile << "reynolds_nr " << mReynolds << '\n';
     mOutputFile << "nr_of_frames " << mTimeSim / mFrameTime << '\n';
@@ -608,13 +497,34 @@ void NavierStokesSolver::saveStepToFile()
 
         // Save the velocities u and v, and the pressure, in contiguous form
         for ( int i = 0; i < mNxp2 * mNyp2; ++i )
+        {
             mOutputFile << mU[ i ] << ' ';
+
+            if ( std::fabs(mU[ i ]) > mVelocityScale )
+                mVelocityScale = std::fabs(mU[i]);
+        }
         mOutputFile << '\n';
         for ( int i = 0; i < mNxp2 * mNyp2; ++i )
+        {
             mOutputFile << mV[ i ] << ' ';
+
+            if ( std::fabs(mV[ i ]) > mVelocityScale )
+                mVelocityScale = std::fabs(mV[i]);
+        }
         mOutputFile << '\n';
         for ( int i = 0; i < mNxp2 * mNyp2; ++i )
             mOutputFile << mP[ i ] << ' ';
         mOutputFile << '\n';
     }
+}
+
+// Write the velocity scale at the beginning of the file 
+void NavierStokesSolver::writeVelocityScale()
+{
+    // Invert the velocity scale
+    mVelocityScale = 2. / mVelocityScale;
+
+    // Move the pointer to the beginning of the file
+    mOutputFile.seekp( 15 );
+    mOutputFile << std::scientific << std::setprecision(3) << mVelocityScale;
 }

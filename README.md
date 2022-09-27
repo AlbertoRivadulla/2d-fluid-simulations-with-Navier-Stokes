@@ -11,5 +11,6 @@ Simulations of 2-dimensional fluids solving the Navier-Stokes equations.
         - The output file will have a header, with: dimensions of the grid, nr of frames,
         frames per second, total time, map of the grid
 - Output to a video
-    - Save to text files only the data that will appear in the video
+    - Save to the text file the map of the domain, and read it when writing the
+    video
 

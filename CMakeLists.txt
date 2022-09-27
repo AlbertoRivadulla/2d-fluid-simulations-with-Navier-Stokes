@@ -30,6 +30,7 @@ set(SOURCES
     main.cpp
     ${PROJECT_SOURCE_DIR}/src/NavierStokesSolver.cpp
     ${PROJECT_SOURCE_DIR}/src/boundaryConditions.cpp
+    ${PROJECT_SOURCE_DIR}/src/videoOutput.cpp
    )
 
 add_executable(main ${SOURCES})
