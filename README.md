@@ -6,6 +6,8 @@ Simulations of 2-dimensional fluids solving the Navier-Stokes equations.
 - `BoundaryConditions`
     - Implement possibility to add objects inside the domain
     - Improve the way in which wall boundary conditions are stored and applied
+    - Outflow boundary conditions should also modify the value of the velocity
+    at the boundary, in such a way that the derivative is constant
 - `NavierStokesSolver`
     - Write the results to a file
         - The output file will have a header, with: dimensions of the grid, nr of frames,

@@ -49,7 +49,7 @@ NavierStokesSolver::NavierStokesSolver( const int& Nx, const int& Ny,
     // Threshold for the L2-norm of the residual squared
     mThreshold = 0.00001 * mNx * mNy;
     // Maximum number of iterations for the algorithm
-    mIterMax = 100;
+    mIterMax = 1000;
 
     // The simulation is good by default
     mGoodSimulation = true;

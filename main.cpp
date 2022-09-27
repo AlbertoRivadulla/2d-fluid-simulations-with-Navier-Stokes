@@ -17,7 +17,7 @@ int main()
     double gridSize = 0.01;
 
     // Time to run the simulation
-    double timeSim = 5.;
+    double timeSim = 1.;
 
     // Parameter tau for the time step 
     double tau = 0.2;
@@ -30,17 +30,13 @@ int main()
 
     // Setup the boundary conditions
     BoundaryConditions boundaryConditions;
-    // boundaryConditions.addInflowWall( N, { 1, 0 } );
-    // boundaryConditions.addOutflowWall( S );
-    // boundaryConditions.addSolidWall( E );
-    // boundaryConditions.addSolidWall( W );
 
     boundaryConditions.addWallBC( N, INFLOW, { 0.0001, 0. } );
     boundaryConditions.addWallBC( S, SOLID );
     boundaryConditions.addWallBC( E, SOLID );
     boundaryConditions.addWallBC( W, SOLID );
 
-    // boundaryConditions.addWallBC( W, INFLOW, { 0.0001, 0. } );
+    // boundaryConditions.addWallBC( W, INFLOW, { 0.0000001, 0. } );
     // boundaryConditions.addWallBC( N, SOLID );
     // boundaryConditions.addWallBC( S, SOLID );
     // boundaryConditions.addWallBC( E, SOLID );
