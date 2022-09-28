@@ -79,6 +79,9 @@ class BoundaryConditions
         // Method to apply the boundary conditions on an array of velocities
         void applyBCs( double* u, double* v );
 
+        // Number of fluid cells
+        int mNrFluidCells;
+
     private:
         // Dimensions of the domain
         int mNx;
@@ -96,6 +99,12 @@ class BoundaryConditions
         WallBC mSWall;
         WallBC mEWall;
         WallBC mWWall;
+
+        // List of boundary conditions
+
+        //
+        //
+        //
 
         // Apply boundary conditions due to the walls
         void applyWallsBCs( double* u, double* v );

@@ -251,10 +251,12 @@ void NavierStokesSolver::computeDeltaTime()
     {
         for ( int j = 0; j < mNyp2; ++j )
         {
-            if ( mU[ i*mNyp2 + j ] > uMax )
-                uMax = mU[ i*mNyp2 + j ];
-            if ( mV[ i*mNyp2 + j ] > uMax )
-                vMax = mV[ i*mNyp2 + j ];
+            uMax = std::max( std::fabs( mU[ i*mNyp2 + j ] ), uMax );
+            vMax = std::max( std::fabs( mV[ i*mNyp2 + j ] ), vMax );
+            // if ( mU[ i*mNyp2 + j ] > uMax )
+            //     uMax = mU[ i*mNyp2 + j ];
+            // if ( mV[ i*mNyp2 + j ] > uMax )
+            //     vMax = mV[ i*mNyp2 + j ];
         }
     }
     // If the maximum velocity is zero, add a small offset to it 
@@ -280,38 +282,41 @@ void NavierStokesSolver::computeTentativeVelocity()
     {
         for ( int j = 1; j < mNy + 1; ++j )
         {
-            // Compute indices
-            unsigned int ij     = i * mNyp2 + j;
-            unsigned int im1j   = ( i - 1 ) * mNyp2 + j;
-            unsigned int ip1j   = ( i + 1 ) * mNyp2 + j;
-            unsigned int ijm1   = i * mNyp2 + j - 1;
-            unsigned int ijp1   = i * mNyp2 + j + 1;
-            unsigned int ijForR = (i-1) * mNy + j-1;
-
-            // Compute Rx and Ry
-            mRx[ ijForR ] = - mU[ ij ] * ( mU[ ij ] - mU[ im1j ] ) * mHInv 
-                            - mV[ ij ] * ( mU[ ij ] - mU[ ijm1 ] ) * mHInv 
-                            + mReynoldsInv * mHSqInv * ( mU[ ip1j ] - 2.*mU[ ij ] + mU[im1j] + 
-                                                         mU[ ijp1 ] - 2.*mU[ ij ] + mU[ijm1] )
-                            + mGx;
-            mRy[ ijForR ] = - mU[ ij ] * ( mV[ ij ] - mV[ im1j ] ) * mHInv 
-                            - mV[ ij ] * ( mV[ ij ] - mV[ ijm1 ] ) * mHInv 
-                            + mReynoldsInv * mHSqInv * ( mV[ ip1j ] - 2.*mV[ ij ] + mV[im1j] + 
-                                                         mV[ ijp1 ] - 2.*mV[ ij ] + mV[ijm1] )
-                            + mGy;
-
-            // Compute Up and Vp 
-            // mUp[ ij ] = mU[ ij ] + mDeltaT * ( 1.5 * mRx[ ijForR ] - 0.5 * mRxOld[ ijForR ] );
-            // mVp[ ij ] = mV[ ij ] + mDeltaT * ( 1.5 * mRy[ ijForR ] - 0.5 * mRyOld[ ijForR ] );
-            if ( mTotalTime == 0. )
+            if ( mBoundaryConditions->isFluidCell( i-1, j-1 ) )
             {
-                mUp[ ij ] = mU[ ij ] + mDeltaT * mRx[ ijForR ];
-                mVp[ ij ] = mV[ ij ] + mDeltaT * mRy[ ijForR ];
-            }
-            else
-            {
-                mUp[ ij ] = mU[ ij ] + mDeltaT * ( 1.5 * mRx[ ijForR ] - 0.5 * mRxOld[ ijForR ] );
-                mVp[ ij ] = mV[ ij ] + mDeltaT * ( 1.5 * mRy[ ijForR ] - 0.5 * mRyOld[ ijForR ] );
+                // Compute indices
+                unsigned int ij     = i * mNyp2 + j;
+                unsigned int im1j   = ( i - 1 ) * mNyp2 + j;
+                unsigned int ip1j   = ( i + 1 ) * mNyp2 + j;
+                unsigned int ijm1   = i * mNyp2 + j - 1;
+                unsigned int ijp1   = i * mNyp2 + j + 1;
+                unsigned int ijForR = (i-1) * mNy + j-1;
+
+                // Compute Rx and Ry
+                mRx[ ijForR ] = - mU[ ij ] * ( mU[ ij ] - mU[ im1j ] ) * mHInv 
+                                - mV[ ij ] * ( mU[ ij ] - mU[ ijm1 ] ) * mHInv 
+                                + mReynoldsInv * mHSqInv * ( mU[ ip1j ] - 2.*mU[ ij ] + mU[im1j] + 
+                                                             mU[ ijp1 ] - 2.*mU[ ij ] + mU[ijm1] )
+                                + mGx;
+                mRy[ ijForR ] = - mU[ ij ] * ( mV[ ij ] - mV[ im1j ] ) * mHInv 
+                                - mV[ ij ] * ( mV[ ij ] - mV[ ijm1 ] ) * mHInv 
+                                + mReynoldsInv * mHSqInv * ( mV[ ip1j ] - 2.*mV[ ij ] + mV[im1j] + 
+                                                             mV[ ijp1 ] - 2.*mV[ ij ] + mV[ijm1] )
+                                + mGy;
+
+                // Compute Up and Vp 
+                // mUp[ ij ] = mU[ ij ] + mDeltaT * ( 1.5 * mRx[ ijForR ] - 0.5 * mRxOld[ ijForR ] );
+                // mVp[ ij ] = mV[ ij ] + mDeltaT * ( 1.5 * mRy[ ijForR ] - 0.5 * mRyOld[ ijForR ] );
+                if ( mTotalTime == 0. )
+                {
+                    mUp[ ij ] = mU[ ij ] + mDeltaT * mRx[ ijForR ];
+                    mVp[ ij ] = mV[ ij ] + mDeltaT * mRy[ ijForR ];
+                }
+                else
+                {
+                    mUp[ ij ] = mU[ ij ] + mDeltaT * ( 1.5 * mRx[ ijForR ] - 0.5 * mRxOld[ ijForR ] );
+                    mVp[ ij ] = mV[ ij ] + mDeltaT * ( 1.5 * mRy[ ijForR ] - 0.5 * mRyOld[ ijForR ] );
+                }
             }
         }
     }
@@ -343,11 +348,14 @@ void NavierStokesSolver::computeRHSPoisson()
     {
         for ( int j = 1; j < mNy + 1; ++j )
         {
-            unsigned int ij       = i * mNyp2 + j;
-            unsigned int im1j     = ( i - 1 ) * mNyp2 + j;
-            unsigned int ijm1     = i * mNyp2 + j - 1;
-            unsigned int ijForRHS = (i-1) * mNy + (j-1);
-            mRHS[ ijForRHS ] = mHInv * ( mUp[ ij ] - mUp[ im1j ] + mVp[ ij ] - mVp[ ijm1 ] ) / mDeltaT;
+            if ( mBoundaryConditions->isFluidCell( i-1, j-1 ) )
+            {
+                unsigned int ij       = i * mNyp2 + j;
+                unsigned int im1j     = ( i - 1 ) * mNyp2 + j;
+                unsigned int ijm1     = i * mNyp2 + j - 1;
+                unsigned int ijForRHS = (i-1) * mNy + (j-1);
+                mRHS[ ijForRHS ] = mHInv * ( mUp[ ij ] - mUp[ im1j ] + mVp[ ij ] - mVp[ ijm1 ] ) / mDeltaT;
+            }
         }
     }
 }
@@ -364,6 +372,7 @@ void NavierStokesSolver::solvePoisson()
         for ( int j = 1; j < mNy; ++j )
             pSqAcc += mP[ i*mNyp2 + j ] * mP[ i*mNyp2 + j ];
     pSqAcc = std::sqrt( pSqAcc / ( mNx * mNy ) );
+    // pSqAcc = std::sqrt( pSqAcc / (mBoundaryConditions->mNrFluidCells) );
     if ( pSqAcc < 0.001 ) 
         pSqAcc = 1.;
     for ( int i = 0; i < mNxp2; ++i )
@@ -372,8 +381,6 @@ void NavierStokesSolver::solvePoisson()
 
     // Compute the threshold for the SOR algorith based on this value
     double thisTreshold = mThreshold * pSqAcc * mHSqInv / mDeltaT;
-
-    // std::cout << "Average pressure: " << pSqAcc << std::endl;
 
     int iter = 0;
     for ( ; iter < mIterMax; ++iter )
@@ -388,27 +395,30 @@ void NavierStokesSolver::solvePoisson()
                 {
                     if ( ( i + j ) % 2 != redBlack )
                         continue;
-                    unsigned int ij   = i * mNyp2 + j;
-                    unsigned int ijForRHS = (i-1) * mNy + j-1;
-                    unsigned int im1j = ( i - 1 ) * mNyp2 + j;
-                    unsigned int ip1j = ( i + 1 ) * mNyp2 + j;
-                    unsigned int ijm1 = i * mNyp2 + j - 1;
-                    unsigned int ijp1 = i * mNyp2 + j + 1;
-                    // Compute the pressure
-                    mP[ ij ] = ( 1. - mOmega ) * mP[ ij ] 
-                               + 0.25 * mOmega * ( mP[ ip1j ] + mP[ im1j ] +
-                                                   mP[ ijp1 ] + mP[ ijm1 ] - 
-                                                   mHSq * mRHS[ ijForRHS ] );
+                    if ( mBoundaryConditions->isFluidCell(i-1, j-1) )
+                    {
+                        unsigned int ij   = i * mNyp2 + j;
+                        unsigned int ijForRHS = (i-1) * mNy + j-1;
+                        unsigned int im1j = ( i - 1 ) * mNyp2 + j;
+                        unsigned int ip1j = ( i + 1 ) * mNyp2 + j;
+                        unsigned int ijm1 = i * mNyp2 + j - 1;
+                        unsigned int ijp1 = i * mNyp2 + j + 1;
+                        // Compute the pressure
+                        mP[ ij ] = ( 1. - mOmega ) * mP[ ij ] 
+                                   + 0.25 * mOmega * ( mP[ ip1j ] + mP[ im1j ] +
+                                                       mP[ ijp1 ] + mP[ ijm1 ] - 
+                                                       mHSq * mRHS[ ijForRHS ] );
 
-                    // Set the boundary values equal to the adjacent ones
-                    if ( i == 1 )
-                        mP[ im1j ] = 2. * mP[ ij ] - mP[ip1j];
-                    else if ( i == mNx )
-                        mP[ ip1j ] = 2. * mP[ ij ] - mP[im1j];
-                    if ( j == 1 )
-                        mP[ ijm1 ] = 2. * mP[ ij ] - mP[ijp1];
-                    else if ( j == mNy )
-                        mP[ ijp1 ] = 2. * mP[ ij ] - mP[ijm1];
+                        // Set the boundary values equal to the adjacent ones
+                        if ( i == 1 )
+                            mP[ im1j ] = 2. * mP[ ij ] - mP[ip1j];
+                        else if ( i == mNx )
+                            mP[ ip1j ] = 2. * mP[ ij ] - mP[im1j];
+                        if ( j == 1 )
+                            mP[ ijm1 ] = 2. * mP[ ij ] - mP[ijp1];
+                        else if ( j == mNy )
+                            mP[ ijp1 ] = 2. * mP[ ij ] - mP[ijm1];
+                    }
                 }
             }
         }
@@ -419,17 +429,20 @@ void NavierStokesSolver::solvePoisson()
         {
             for ( int j = 1; j < mNy + 1; ++j )
             {
-                unsigned int ij   = i * mNyp2 + j;
-                unsigned int ijForRHS = (i-1) * mNy + j-1;
-                unsigned int im1j = ( i - 1 ) * mNyp2 + j;
-                unsigned int ip1j = ( i + 1 ) * mNyp2 + j;
-                unsigned int ijm1 = i * mNyp2 + j - 1;
-                unsigned int ijp1 = i * mNyp2 + j + 1;
-                // Add to the residual
-                double thisRes = mHSqInv * ( mP[ ip1j ] - 2.*mP[ ij ] + mP[ im1j ] + 
-                                             mP[ ijp1 ] - 2.*mP[ ij ] + mP[ ijm1 ] )
-                                 - mRHS[ ijForRHS ];
-                residualSq += thisRes * thisRes;
+                if ( mBoundaryConditions->isFluidCell(i-1, j-1) )
+                {
+                    unsigned int ij   = i * mNyp2 + j;
+                    unsigned int ijForRHS = (i-1) * mNy + j-1;
+                    unsigned int im1j = ( i - 1 ) * mNyp2 + j;
+                    unsigned int ip1j = ( i + 1 ) * mNyp2 + j;
+                    unsigned int ijm1 = i * mNyp2 + j - 1;
+                    unsigned int ijp1 = i * mNyp2 + j + 1;
+                    // Add to the residual
+                    double thisRes = mHSqInv * ( mP[ ip1j ] - 2.*mP[ ij ] + mP[ im1j ] + 
+                                                 mP[ ijp1 ] - 2.*mP[ ij ] + mP[ ijm1 ] )
+                                     - mRHS[ ijForRHS ];
+                    residualSq += thisRes * thisRes;
+                }
             }
         }
 
@@ -454,17 +467,19 @@ void NavierStokesSolver::solvePoisson()
 // Update the velocity
 void NavierStokesSolver::updateVelocity()
 {
-    // std::cout << "\n----------------------\n";
     for ( int i = 1; i < mNx + 1; ++i )
     {
         for ( int j = 1; j < mNy + 1; ++j )
         {
-            unsigned int ij   = i * mNyp2 + j;
-            unsigned int ip1j = ( i + 1 ) * mNyp2 + j;
-            unsigned int ijp1 = i * mNyp2 + j + 1;
+            if ( mBoundaryConditions->isFluidCell(i-1, j-1) )
+            {
+                unsigned int ij   = i * mNyp2 + j;
+                unsigned int ip1j = ( i + 1 ) * mNyp2 + j;
+                unsigned int ijp1 = i * mNyp2 + j + 1;
 
-            mU[ ij ] = mUp[ ij ] - mHInv * mDeltaT * ( mP[ ip1j ] - mP[ ij ] );
-            mV[ ij ] = mVp[ ij ] - mHInv * mDeltaT * ( mP[ ijp1 ] - mP[ ij ] );
+                mU[ ij ] = mUp[ ij ] - mHInv * mDeltaT * ( mP[ ip1j ] - mP[ ij ] );
+                mV[ ij ] = mVp[ ij ] - mHInv * mDeltaT * ( mP[ ijp1 ] - mP[ ij ] );
+            }
         }
     }
 }

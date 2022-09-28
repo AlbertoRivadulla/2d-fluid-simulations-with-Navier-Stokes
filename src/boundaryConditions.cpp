@@ -4,6 +4,7 @@
 // Constructor
 BoundaryConditions::BoundaryConditions( const int& Nx, const int& Ny ) :
     mNx { Nx }, mNy { Ny },
+    mNrFluidCells { Nx * Ny },
     mNWall ( N, OUTFLOW, { 0., 0. } ),
     mSWall ( S, OUTFLOW, { 0., 0. } ),
     mEWall ( E, OUTFLOW, { 0., 0. } ),
@@ -41,9 +42,16 @@ void BoundaryConditions::addObstacleCircle( const int& x, const int& y, const do
 {
     // Draw a circle on the domain wall 
     for ( int i = 0; i < mNx; ++i )
+    {
         for ( int j = 0; j < mNy; ++j )
+        {
             if ( (i-x)*(i-x) + (j-y)*(j-y) <= radius*radius )
+            {
                 mDomainMap[ i*mNy + j ] = 0;
+                mNrFluidCells -= 1;
+            }
+        }
+    }
 
     // Add the boundary to the list of boundary conditions
 

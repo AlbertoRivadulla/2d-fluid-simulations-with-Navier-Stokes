@@ -97,11 +97,11 @@ void makeVideoFromDataFile( std::string inFileName, std::string outVideoName, in
                     unsigned int ij = ( i + 1 ) * ( Ny + 2 ) + j + 1;
                     double Rval = 255. * velScale * std::sqrt( v[ ij ] * v[ ij ] + u[ ij ] * u[ ij ] );
 
-                    // Absolute value of the vorticity
+                    // // Absolute value of the vorticity
                     // unsigned int ij = ( i + 1 ) * ( Ny + 2 ) + j + 1;
                     // unsigned int im1j = ( i ) * ( Ny + 2 ) + j + 1;
                     // unsigned int ijm1 = ( i + 1 ) * ( Ny + 2 ) + j;
-                    // double Rval = 255. * velScale * ( u[ ij ] - u[ ijm1 ] + v[ ij ] - v[ im1j ] ) / h;
+                    // double Rval = 255. * velScale * ( - u[ ij ] + u[ ijm1 ] + v[ ij ] - v[ im1j ] ) / h;
                     // Rval = std::fabs( Rval );
 
                     pixels[ i + (Ny - j - 1) * Nx ] = cv::Vec3b( Rval, Rval, Rval );

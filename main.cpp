@@ -20,11 +20,11 @@ int main()
 
     // Time to run the simulation
     // double timeSim = 5.;
-    // double timeSim = 1.;
-    double timeSim = 5. / 30.;
+    double timeSim = 1.;
+    // double timeSim = 5. / 30.;
 
     // Parameter tau for the time step 
-    double tau = 0.2;
+    double tau = 0.1;
 
     // Reynolds number
     double reynolds = 100.;
