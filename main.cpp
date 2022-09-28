@@ -17,13 +17,13 @@ int main()
     double gridSize = 0.01;
 
     // Time to run the simulation
-    double timeSim = 1.;
+    double timeSim = 5.;
 
     // Parameter tau for the time step 
     double tau = 0.2;
 
     // Reynolds number
-    double reynolds = 100.;
+    double reynolds = 1000.;
 
     // External force ( gravity )
     Vec2d force( 0., 0. );
@@ -31,14 +31,14 @@ int main()
     // Setup the boundary conditions
     BoundaryConditions boundaryConditions;
 
-    boundaryConditions.addWallBC( N, INFLOW, { 0.0001, 0. } );
-    boundaryConditions.addWallBC( S, SOLID );
-    boundaryConditions.addWallBC( E, SOLID );
-    boundaryConditions.addWallBC( W, SOLID );
-
-    // boundaryConditions.addWallBC( W, INFLOW, { 0.0000001, 0. } );
-    // boundaryConditions.addWallBC( N, SOLID );
+    // boundaryConditions.addWallBC( N, INFLOW, { 0.0001, 0. } );
     // boundaryConditions.addWallBC( S, SOLID );
+    // boundaryConditions.addWallBC( E, SOLID );
+    // boundaryConditions.addWallBC( W, SOLID );
+
+    boundaryConditions.addWallBC( W, INFLOW, { 0.000001, 0. } );
+    boundaryConditions.addWallBC( N, SOLID );
+    boundaryConditions.addWallBC( S, SOLID );
     // boundaryConditions.addWallBC( E, SOLID );
 
     // Add some solid objects in the domain 

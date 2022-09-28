@@ -78,7 +78,6 @@ void BoundaryConditions::applyBCs( double* u, double* v, const int& Nx, const in
     // Top wall
     if ( mNWall.type != OUTFLOW )
     {
-        // for ( int i = 1; i < Nx + 1; ++i )
         for ( int i = 0; i < Nx + 2; ++i )
         {
             u[ i*Nyp2 + Ny+1 ] = 2. * mNWall.velocity.x - u[ i*Nyp2 + Ny ];
@@ -86,38 +85,71 @@ void BoundaryConditions::applyBCs( double* u, double* v, const int& Nx, const in
             v[ i*Nyp2 + Ny+1 ] = 2. * mNWall.velocity.y - v[ i*Nyp2 + Ny-1 ];
         }
     }
+    else
+    {
+        // std::cout << "algoN\n";
+        for ( int i = 0; i < Nx + 2; ++i )
+        {
+            u[ i*Nyp2 + Ny+1 ] = 2. * u[ i*Nyp2 + Ny ] - u[ i*Nyp2 + Ny-1 ];
+            v[ i*Nyp2 + Ny ] = 2. * v[ i*Nyp2 + Ny-1 ] - v[ i*Nyp2 + Ny-2 ];
+            v[ i*Nyp2 + Ny+1 ] = 2. * v[ i*Nyp2 + Ny ] - v[ i*Nyp2 + Ny-1 ];
+        }
+    }
 
     // Bottom wall
     if ( mSWall.type != OUTFLOW )
     {
-        // for ( int i = 1; i < Nx + 1; ++i )
         for ( int i = 0; i < Nx + 2; ++i )
         {
-            u[ i*Nyp2 ] = 2 * mSWall.velocity.x - u[ i*Nyp2 + 1 ];
+            u[ i*Nyp2 ] = 2. * mSWall.velocity.x - u[ i*Nyp2 + 1 ];
             v[ i*Nyp2 ] = mSWall.velocity.y; 
+        }
+    }
+    else
+    {
+        // std::cout << "algoS\n";
+        for ( int i = 0; i < Nx + 2; ++i )
+        {
+            u[ i*Nyp2 ] = 2. * u[ i*Nyp2 + 1 ] - u[ i*Nyp2 + 2 ];
+            v[ i*Nyp2 ] = 2. * v[ i*Nyp2 + 1 ] - v[ i*Nyp2 + 2 ];
         }
     }
 
     // Left wall 
     if ( mWWall.type != OUTFLOW )
     {
-        // for ( int j = 1; j < Ny + 1; ++j )
         for ( int j = 0; j < Ny + 2; ++j )
         {
             u[ j ] = mWWall.velocity.x;
             v[ j ] = 2. * mWWall.velocity.y - v[ Nyp2 + j ];
         }
     }
+    else
+    {
+        for ( int j = 0; j < Ny + 2; ++j )
+        {
+            u[ j ] = 2. * u[ Nyp2 + j ] - u[ 2*Nyp2 + j ];
+            v[ j ] = 2. * v[ Nyp2 + j ] - v[ 2*Nyp2 + j ];
+        }
+    }
 
     // Right wall
     if ( mEWall.type != OUTFLOW )
     {
-        // for ( int j = 1; j < Ny + 1; ++j )
         for ( int j = 0; j < Ny + 2; ++j )
         {
             u[ Nx*Nyp2 + j ]     = mEWall.velocity.x;
             u[ (Nx+1)*Nyp2 + j ] = 2. * mEWall.velocity.x - u[ (Nx-1)*Nyp2 + j ];
             v[ (Nx+1)*Nyp2 + j ] = 2. * mEWall.velocity.y - v[ Nx*(Ny+1) + j ];
+        }
+    }
+    else
+    {
+        for ( int j = 0; j < Ny + 2; ++j )
+        {
+            u[ Nx*Nyp2 + j ] = 2. * u[ (Nx-1)*Nyp2 + j ] - u[ (Nx-2)*Nyp2 + j ];
+            u[ (Nx+1)*Nyp2 + j ] = 2. * u[ Nx*Nyp2 + j ] - u[ (Nx-1)*Nyp2 + j ];
+            v[ (Nx+1)*Nyp2 + j ] = 2. * v[ Nx*Nyp2 + j ] - v[ (Nx-1)*Nyp2 + j ];
         }
     }
 
