@@ -5,6 +5,7 @@
 #include <vector>
 #include <set>
 #include <utility> // For std::pair
+#include <fstream>
 
 // 2-dimensional vector for the velocities
 struct Vec2d
@@ -60,43 +61,47 @@ class BoundaryConditions
     public:
         // Constructor
         // By default the 4 wall will be OUTFLOW walls
-        BoundaryConditions();
+        BoundaryConditions( const int& Nx, const int& Ny );
 
         // Add boundary conditions to the walls
         void addWallBC( Direction dirVal, TypeBC typeVal, Vec2d velocityVal = { 0., 0. } );
 
-        // // Add a solid wall
-        // void addSolidWall( Direction dir );
-        // // Add an inflow wall 
-        // void addInflowWall( Direction dir, const Vec2d& vel );
-        // // Add an outflow wall 
-        // void addOutflowWall( Direction dir );
+        // Methods to add different obstacles
+        void addObstacleCircle( const int& x, const int& y, const double& radius );
+        // void addObstacleRectangle( const int& x, const int& y, const double& width, const double& height );
 
-        // // Method to check if the boundary conditions are valid.
-        // // They are valid if all the walls have some sort of BC.
-        // bool check();
+        // Save the map of the domain to a file stream
+        void drawDomainMap( std::ofstream& fileStream );
+
+        // Method to check if a pair of indices correspond to a fluid cell
+        bool isFluidCell( const int& i, const int& j );
 
         // Method to apply the boundary conditions on an array of velocities
-        void applyBCs( double* u, double* v, const int& Nx, const int& Ny );
+        void applyBCs( double* u, double* v );
 
     private:
-        // // List of walls with boundary conditions
-        // std::set<Direction> mWallsWithBCs;
-        //
-        // // Solid walls
-        // std::vector<Direction> mSolidWalls;
-        //
-        // // Inflow walls
-        // std::vector<std::pair<Direction, Vec2d>> mInflowWalls;
-        //
-        // // Outflow walls 
-        // std::vector<Direction> mOutflowWalls;
+        // Dimensions of the domain
+        int mNx;
+        int mNy;
+
+        // Map of the domain
+        //      0: obstacle cell
+        //      1: fluid cell
+        // Walls are not considered here, but outside
+        // unsigned int* mDomainMap;
+        std::vector<unsigned int> mDomainMap;
 
         // Boundary conditions for the 4 walls
         WallBC mNWall;
         WallBC mSWall;
         WallBC mEWall;
         WallBC mWWall;
+
+        // Apply boundary conditions due to the walls
+        void applyWallsBCs( double* u, double* v );
+
+        // Apply boundary conditions due to obstacles
+        void applyObstaclesBCs( double* u, double* v );
 };
 
 #endif

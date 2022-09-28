@@ -14,19 +14,17 @@ void makeVideoFromDataFile( std::string inFileName, std::string outVideoName, in
 
     // Parameters to read from the file
     int Nx, Ny;
+    double h;
     int nrFrames;
     int fps;
     double velScale;
-    // Map of the domain
-    //
-    //
-    //
     // String of data to dump
     std::string trashString;
 
     // Read the parameters
     dataFile >> trashString >> velScale;    // Scaling factor for the velocity
     dataFile >> trashString >> Nx >> Ny;    // Dimensions of the domain
+    dataFile >> trashString >> h;           // Size of the cells
     dataFile >> trashString >> trashString; // Reynolds number
     dataFile >> trashString >> nrFrames;    // Number of frames
     dataFile >> trashString >> fps;         // Frames per second
@@ -35,10 +33,16 @@ void makeVideoFromDataFile( std::string inFileName, std::string outVideoName, in
     fps = fps / 6;
 
     // Read the map of the domain 
+    std::vector<unsigned int> domainMap ( Nx * Ny, 1 );
+    std::string domainMapString;
 
-    //
-    //
-    //
+    dataFile >> domainMapString;
+
+    for ( int i = 0; i < Nx*Ny; ++i )
+    {
+        if ( domainMapString[ i ] == '0' )
+            domainMap[ i ] = 0;
+    }
 
     // Matrices with the data of the two components of the velocity and the pressure 
     double* u = new double[ (Nx + 2) * (Ny + 2) ];
@@ -82,9 +86,26 @@ void makeVideoFromDataFile( std::string inFileName, std::string outVideoName, in
         {
             for ( int j = 0; j < Ny; ++j )
             {
-                unsigned int ij = ( i + 1 ) * ( Ny + 2 ) + j + 1;
-                double Rval = 255. * velScale * std::sqrt( v[ ij ] * v[ ij ] + u[ ij ] * u[ ij ] );
-                pixels[ i + (Ny - j - 1) * Nx ] = cv::Vec3b( Rval, Rval, Rval );
+                // If this cell corresponds to an obstacle, draw it
+                if ( domainMap[ i*Ny + j ] == 0 )
+                {
+                    pixels[ i + (Ny - j - 1)*Nx ] = cv::Vec3b( 0, 255, 0 );
+                }
+                else
+                {
+                    // Modulus of the velocity
+                    unsigned int ij = ( i + 1 ) * ( Ny + 2 ) + j + 1;
+                    double Rval = 255. * velScale * std::sqrt( v[ ij ] * v[ ij ] + u[ ij ] * u[ ij ] );
+
+                    // Absolute value of the vorticity
+                    // unsigned int ij = ( i + 1 ) * ( Ny + 2 ) + j + 1;
+                    // unsigned int im1j = ( i ) * ( Ny + 2 ) + j + 1;
+                    // unsigned int ijm1 = ( i + 1 ) * ( Ny + 2 ) + j;
+                    // double Rval = 255. * velScale * ( u[ ij ] - u[ ijm1 ] + v[ ij ] - v[ im1j ] ) / h;
+                    // Rval = std::fabs( Rval );
+
+                    pixels[ i + (Ny - j - 1) * Nx ] = cv::Vec3b( Rval, Rval, Rval );
+                }
             }
         }
 

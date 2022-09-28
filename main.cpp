@@ -12,40 +12,40 @@ int main()
     // Define the problem
 
     // Dimensions of the grid
-    int Nx = 200;
-    int Ny = 150;
+    // int Nx = 200;
+    // int Ny = 150;
+    int Nx = 100;
+    int Ny = 100;
     double gridSize = 0.01;
 
     // Time to run the simulation
-    double timeSim = 5.;
+    // double timeSim = 5.;
+    // double timeSim = 1.;
+    double timeSim = 5. / 30.;
 
     // Parameter tau for the time step 
     double tau = 0.2;
 
     // Reynolds number
-    double reynolds = 1000.;
+    double reynolds = 100.;
 
     // External force ( gravity )
     Vec2d force( 0., 0. );
 
     // Setup the boundary conditions
-    BoundaryConditions boundaryConditions;
+    BoundaryConditions boundaryConditions( Nx, Ny );
 
-    // boundaryConditions.addWallBC( N, INFLOW, { 0.0001, 0. } );
+    // boundaryConditions.addWallBC( N, INFLOW, { 0.00001, 0. } );
     // boundaryConditions.addWallBC( S, SOLID );
     // boundaryConditions.addWallBC( E, SOLID );
     // boundaryConditions.addWallBC( W, SOLID );
 
-    boundaryConditions.addWallBC( W, INFLOW, { 0.000001, 0. } );
+    boundaryConditions.addWallBC( W, INFLOW, { 0.0000001, 0. } );
     boundaryConditions.addWallBC( N, SOLID );
     boundaryConditions.addWallBC( S, SOLID );
-    // boundaryConditions.addWallBC( E, SOLID );
 
     // Add some solid objects in the domain 
-    
-    //
-    //
-    //
+    boundaryConditions.addObstacleCircle(Nx/3, Ny/2, 20);
 
     //---------------------------------------------------------------
     // Run the simulation

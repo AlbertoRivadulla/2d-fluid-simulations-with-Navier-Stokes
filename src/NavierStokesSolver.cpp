@@ -104,9 +104,12 @@ void NavierStokesSolver::setInitialValues( double u0, double v0, double p0 )
     {
         for ( int j = 0; j < mNyp2; ++j )
         {
-            mU[ i*mNyp2 + j ] = u0;
-            mV[ i*mNyp2 + j ] = v0;
-            mP[ i*mNyp2 + j ] = p0;
+            if ( mBoundaryConditions->isFluidCell( i-1, j-1 ) )
+            {
+                mU[ i*mNyp2 + j ] = u0;
+                mV[ i*mNyp2 + j ] = v0;
+                mP[ i*mNyp2 + j ] = p0;
+            }
         }
     }
 }
@@ -124,7 +127,7 @@ void NavierStokesSolver::solve( std::string outFileName )
     auto t0 {std::chrono::high_resolution_clock::now()};
 
     // Apply the boundary conditions for the first time
-    mBoundaryConditions->applyBCs( mU, mV, mNx, mNy );
+    mBoundaryConditions->applyBCs( mU, mV );
 
     saveStepToFile();
 
@@ -153,7 +156,7 @@ void NavierStokesSolver::solve( std::string outFileName )
         updateVelocity();
 
         // Apply the boundary conditions
-        mBoundaryConditions->applyBCs( mU, mV, mNx, mNy );
+        mBoundaryConditions->applyBCs( mU, mV );
 
         // If the time elapsed is more than a frame, save the current state
         mThisFrameTime += mDeltaT;
@@ -475,15 +478,13 @@ void NavierStokesSolver::initOutputFile( const std::string& outFileName )
     // Write the header
     mOutputFile << "velocity_scale " << "          " << '\n';
     mOutputFile << "dimensions " << mNx << ' ' << mNy << '\n';
+    mOutputFile << "cell_size " << mH << '\n';
     mOutputFile << "reynolds_nr " << mReynolds << '\n';
     mOutputFile << "nr_of_frames " << mTimeSim / mFrameTime << '\n';
     mOutputFile << "fps " << 1. / mFrameTime << '\n';
 
     // Save a map of the grid 
-
-    //
-    //
-    //
+    mBoundaryConditions->drawDomainMap( mOutputFile );
 }
 
 // Save the results to the file
